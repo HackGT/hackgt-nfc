@@ -183,11 +183,14 @@ impl CheckinAPI {
 		if let Some(errors) = response.errors {
 			return Err(Error::GraphQL(errors));
 		}
-		if response.data.is_none() {
-			return Err("Check in API returned no data".into());
-		}
-
-		let check_in_data = response.data.unwrap().check_in.unwrap();
+		let data = match response.data {
+			Some(data) => data,
+			None => return Err("Check in API returned no data".into()),
+		};
+		let check_in_data = match data.check_in {
+			Some(check_in_data) => check_in_data,
+			None => return Err("Invalid user ID on badge".into()),
+		};
 		let user = check_in_data.user.user_data;
 		if !user.accepted || !user.confirmed {
 			return Err("User not accepted and confirmed".into());
