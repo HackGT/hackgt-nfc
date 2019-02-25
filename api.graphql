@@ -1,0 +1,70 @@
+# Grabbed from https://github.com/HackGT/Checkin-Android/blob/master/app/src/main/graphql/gt/hack/nfc/api.graphql
+
+query UserSearch($text: String!, $number: Int!) {
+	search_user_simple(search: $text, offset: 0, n: $number, filter: {confirmed: true, accepted: true}) {
+		user {
+			...UserData
+		}
+		tags {
+			...TagData
+		}
+	}
+}
+query UserGet($id: ID!) {
+	user(id: $id) {
+		user {
+			...UserData
+		}
+		tags {
+		...TagData
+		}
+	}
+}
+query TagsGet($only_current: Boolean!) {
+	tags(only_current: $only_current) {
+		name
+	}
+}
+
+mutation CheckInTag($id: ID!, $tag: String!, $checkin: Boolean!) {
+	check_in(user: $id, tag: $tag, checkin: $checkin) {
+		user {
+			...UserData
+		}
+		tags {
+			...TagData
+		}
+	}
+}
+
+fragment TagData on TagState {
+	tag {
+		name
+	}
+	checked_in
+	checkin_success
+	last_successful_checkin {
+		checked_in_date
+		checked_in_by
+	}
+}
+fragment UserData on User {
+	id
+	applied
+	accepted
+	confirmed
+	confirmationBranch
+	application {
+		type
+	}
+	confirmation {
+		type
+	}
+	name
+	email
+	questions(names: ["school", "tshirt-size","dietary-restrictions", "optional-items"]) {
+		name
+		value
+		values
+	}
+}
