@@ -196,6 +196,31 @@ impl CheckinAPI {
 	pub fn check_out(&self, uuid: &str, tag: &str) -> Result<CheckInReturn, Error> {
 		self.checkin_action(false, uuid, tag)
 	}
+
+	pub fn get_tags_names(&self, only_current: bool) -> Result<Vec<String>, Error> {
+		let body = TagsGet::build_query(tags_get::Variables {
+			only_current
+		});
+
+		let response: Response<tags_get::ResponseData> = self.client.post(self.base_url.join("/graphql").unwrap())
+			.header(reqwest::header::COOKIE, self.auth_token.as_str())
+			.json(&body)
+			.send()?
+			.json()?;
+
+		if let Some(errors) = response.errors {
+			return Err(Error::GraphQL(errors));
+		}
+		if response.data.is_none() {
+			return Err("Check in API returned no data".into());
+		}
+		Ok(
+			response.data.unwrap()
+				.tags.into_iter()
+				.map(|tag| tag.name)
+				.collect()
+		)
+	}
 }
 
 #[cfg(test)]
@@ -211,6 +236,8 @@ mod checkin_api_tests {
 		assert_eq!(instance.auth_token.len(), 64 + 5);
 
 		instance.check_in("7dd00021-89fd-49f1-9c17-bd0ba7dcf97e", "123").unwrap();
+
+		instance.get_tags_names(true).unwrap();
 
 		instance.add_user("test_user", "just testing").unwrap();
 		instance.delete_user("test_user").unwrap();
