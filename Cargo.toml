@@ -3,6 +3,10 @@ name = "hackgt-nfc"
 version = "0.1.0"
 authors = ["Ryan Petschek <petschekr@gmail.com>"]
 edition = "2018"
+description = "A portable Rust library for working with HackGT's NFC badges"
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/HackGT/hackgt-nfc"
 
 [dependencies]
 pcsc = "2"

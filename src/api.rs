@@ -2,6 +2,7 @@ use std::fmt;
 use url::Url;
 use graphql_client::{ GraphQLQuery, Response };
 
+#[doc(hidden)]
 pub enum Error {
 	Network(reqwest::Error),
 	Message(&'static str),
@@ -66,6 +67,11 @@ pub struct CheckinAPI {
 	auth_token: String,
 }
 
+/// An implementation of the [HackGT Check-In](https://github.com/HackGT/checkin2) API
+///
+/// Will use the dev instance at [`https://checkin.dev.hack.gt`](https://checkin.dev.hack.gt) if compiled *without* the `--release` flag
+///
+/// Will use the production instance at [`https://checkin.hack.gt`](https://checkin.hack.gt) if compiled *with* the `--release` flag
 impl CheckinAPI {
 	#[cfg(debug_assertions)]
 	fn base_url() -> &'static str {
@@ -76,6 +82,9 @@ impl CheckinAPI {
 		"https://checkin.hack.gt"
 	}
 
+	/// Log into the API using a username / password combination provided to you
+	///
+	/// Note: this will block for a few seconds because the server has a high PBKDF2 iteration count by default
 	pub fn login(username: &str, password: &str) -> Result<Self, Error> {
 		let client = reqwest::Client::new();
 		let base_url = Url::parse(CheckinAPI::base_url()).expect("Invalid base URL configured");
@@ -114,6 +123,9 @@ impl CheckinAPI {
 		}
 	}
 
+	/// Create an API instance directly from an auth token
+	///
+	/// Can be used to instantly resume an API instance after having obtained a token previously
 	pub fn from_token(mut auth_token: String) -> Self {
 		let client = reqwest::Client::new();
 		let base_url = Url::parse(CheckinAPI::base_url()).expect("Invalid base URL configured");
@@ -122,6 +134,9 @@ impl CheckinAPI {
 		Self { base_url, client, auth_token }
 	}
 
+	/// Creates a new user with the provided username / password combination
+	///
+	/// Can be used to provision sub-devices like with [checkin-embedded](https://github.com/HackGT/checkin-embedded)
 	pub fn add_user(&self, username: &str, password: &str) -> Result<(), Error> {
 		let params = [("username", username), ("password", password)];
 		let response = self.client.put(self.base_url.join("/api/user/update").unwrap())
@@ -190,13 +205,26 @@ impl CheckinAPI {
 		))
 	}
 
+	/// Check a user into a tag
+	///
+	/// Returns a three item tuple containing:
+	/// - Check in success (true / false)
+	/// - User information
+	/// - Tag information (for the tag specified)
 	pub fn check_in(&self, uuid: &str, tag: &str) -> Result<CheckInReturn, Error> {
 		self.checkin_action(true, uuid, tag)
 	}
+
+	/// Check a user out of tag
+	///
+	/// See documentation for `check_in` for more details
 	pub fn check_out(&self, uuid: &str, tag: &str) -> Result<CheckInReturn, Error> {
 		self.checkin_action(false, uuid, tag)
 	}
 
+	/// Get a list of tag names from the check-in instance
+	///
+	/// Can optionally be filtered to only include tags that are currently active (computed from `start` / `end` attributes in check-in database)
 	pub fn get_tags_names(&self, only_current: bool) -> Result<Vec<String>, Error> {
 		let body = TagsGet::build_query(tags_get::Variables {
 			only_current
