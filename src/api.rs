@@ -122,9 +122,35 @@ impl CheckinAPI {
 		Self { base_url, client, auth_token }
 	}
 
-	// pub fn add_user(username: &str, password: &str) -> Result<Self, Error> {
+	pub fn add_user(&self, username: &str, password: &str) -> Result<(), Error> {
+		let params = [("username", username), ("password", password)];
+		let response = self.client.put(self.base_url.join("/api/user/update").unwrap())
+			.header(reqwest::header::COOKIE, self.auth_token.as_str())
+			.form(&params)
+			.send()?;
 
-	// }
+		if !response.status().is_success() {
+			Err("Account creation unsuccessful".into())
+		}
+		else {
+			Ok(())
+		}
+	}
+
+	pub fn delete_user(&self, username: &str) -> Result<(), Error> {
+		let params = [("username", username)];
+		let response = self.client.delete(self.base_url.join("/api/user/update").unwrap())
+			.header(reqwest::header::COOKIE, self.auth_token.as_str())
+			.form(&params)
+			.send()?;
+
+		if !response.status().is_success() {
+			Err("Account deletion unsuccessful".into())
+		}
+		else {
+			Ok(())
+		}
+	}
 
 	fn checkin_action(&self, check_in: bool, uuid: &str, tag: &str) -> Result<CheckInReturn, Error> {
 		let body = CheckInTag::build_query(check_in_tag::Variables {
@@ -184,6 +210,9 @@ mod checkin_api_tests {
 		let instance = CheckinAPI::login(username, password).unwrap();
 		assert_eq!(instance.auth_token.len(), 64 + 5);
 
-		dbg!(instance.check_in("7dd00021-89fd-49f1-9c17-bd0ba7dcf97e", "123").unwrap());
+		instance.check_in("7dd00021-89fd-49f1-9c17-bd0ba7dcf97e", "123").unwrap();
+
+		instance.add_user("test_user", "just testing").unwrap();
+		instance.delete_user("test_user").unwrap();
 	}
 }
