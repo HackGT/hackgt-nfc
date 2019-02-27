@@ -64,7 +64,7 @@ pub type CheckInReturn = (bool, check_in_tag::UserData, check_in_tag::TagData);
 pub struct CheckinAPI {
 	base_url: Url,
 	client: reqwest::Client,
-	auth_token: String,
+	auth_cookie: String,
 }
 
 /// An implementation of the [HackGT Check-In](https://github.com/HackGT/checkin2) API
@@ -116,7 +116,7 @@ impl CheckinAPI {
 				Ok(Self {
 					base_url,
 					client,
-					auth_token: token,
+					auth_cookie: token,
 				})
 			},
 			None => Err("No auth token set by server".into())
@@ -131,7 +131,11 @@ impl CheckinAPI {
 		let base_url = Url::parse(CheckinAPI::base_url()).expect("Invalid base URL configured");
 		// Create a HTTP cookie header out of this token
 		auth_token.insert_str(0, "auth=");
-		Self { base_url, client, auth_token }
+		Self { base_url, client, auth_cookie: auth_token }
+	}
+
+	pub fn auth_token(&self) -> &str {
+		&self.auth_cookie[5..]
 	}
 
 	/// Creates a new user with the provided username / password combination
@@ -140,7 +144,7 @@ impl CheckinAPI {
 	pub fn add_user(&self, username: &str, password: &str) -> Result<(), Error> {
 		let params = [("username", username), ("password", password)];
 		let response = self.client.put(self.base_url.join("/api/user/update").unwrap())
-			.header(reqwest::header::COOKIE, self.auth_token.as_str())
+			.header(reqwest::header::COOKIE, self.auth_cookie.as_str())
 			.form(&params)
 			.send()?;
 
@@ -155,7 +159,7 @@ impl CheckinAPI {
 	pub fn delete_user(&self, username: &str) -> Result<(), Error> {
 		let params = [("username", username)];
 		let response = self.client.delete(self.base_url.join("/api/user/update").unwrap())
-			.header(reqwest::header::COOKIE, self.auth_token.as_str())
+			.header(reqwest::header::COOKIE, self.auth_cookie.as_str())
 			.form(&params)
 			.send()?;
 
@@ -175,7 +179,7 @@ impl CheckinAPI {
 		});
 
 		let response: Response<check_in_tag::ResponseData> = self.client.post(self.base_url.join("/graphql").unwrap())
-			.header(reqwest::header::COOKIE, self.auth_token.as_str())
+			.header(reqwest::header::COOKIE, self.auth_cookie.as_str())
 			.json(&body)
 			.send()?
 			.json()?;
@@ -234,7 +238,7 @@ impl CheckinAPI {
 		});
 
 		let response: Response<tags_get::ResponseData> = self.client.post(self.base_url.join("/graphql").unwrap())
-			.header(reqwest::header::COOKIE, self.auth_token.as_str())
+			.header(reqwest::header::COOKIE, self.auth_cookie.as_str())
 			.json(&body)
 			.send()?
 			.json()?;
@@ -260,11 +264,11 @@ mod checkin_api_tests {
 
 	#[test]
 	fn login() {
-		let username = std::env::var("USERNAME").unwrap();
-		let password = std::env::var("PASSWORD").unwrap();
+		let username = std::env::var("CHECKIN_USERNAME").unwrap();
+		let password = std::env::var("CHECKIN_PASSWORD").unwrap();
 
-		let instance = CheckinAPI::login(username, password).unwrap();
-		assert_eq!(instance.auth_token.len(), 64 + 5);
+		let instance = CheckinAPI::login(&username, &password).unwrap();
+		assert_eq!(instance.auth_token().len(), 64);
 
 		instance.check_in("7dd00021-89fd-49f1-9c17-bd0ba7dcf97e", "123").unwrap();
 
