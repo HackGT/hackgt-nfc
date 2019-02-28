@@ -3,6 +3,10 @@ use std::thread::{ self, JoinHandle };
 use std::collections::HashMap;
 use std::ffi::CStr;
 
+mod badge;
+mod ndef;
+pub use badge::NFCBadge;
+
 pub fn handle_cards<F>(handler: F) -> JoinHandle<()>
 	where F: Fn(&Card, &CStr, usize),
 		  F: Send + 'static

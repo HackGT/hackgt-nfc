@@ -1,6 +1,6 @@
 [package]
 name = "hackgt-nfc"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Ryan Petschek <petschekr@gmail.com>"]
 edition = "2018"
 description = "A portable Rust library for working with HackGT's NFC badges"
