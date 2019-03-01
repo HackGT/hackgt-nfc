@@ -1,6 +1,6 @@
 [package]
 name = "hackgt-nfc"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Ryan Petschek <petschekr@gmail.com>"]
 edition = "2018"
 description = "A portable Rust library for working with HackGT's NFC badges"
@@ -8,11 +8,15 @@ readme = "README.md"
 license = "MIT"
 repository = "https://github.com/HackGT/hackgt-nfc"
 
+[features]
+default = ["nfc"]
+nfc = ["pcsc"]
+
 [dependencies]
-pcsc = "2"
 reqwest = "0.9.10"
 graphql_client = "0.6.1"
 serde = "1.0.88"
 serde_derive = "1.0.88"
 url = "1.7.2"
 regex = "1.1.0"
+pcsc = { version = "2", optional = true }
