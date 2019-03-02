@@ -62,7 +62,7 @@ fragment UserData on User {
 	}
 	name
 	email
-	questions(names: ["school", "tshirt-size","dietary-restrictions", "optional-items"]) {
+	questions(names: ["major", "school", "tshirt-size","dietary-restrictions", "optional-items"]) {
 		name
 		value
 		values
