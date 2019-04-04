@@ -7,9 +7,11 @@ mod badge;
 mod ndef;
 pub use badge::NFCBadge;
 
-pub fn handle_cards<F>(handler: F) -> JoinHandle<()>
+pub fn handle_cards<F, G>(card_handler: F, reader_handler: G) -> JoinHandle<()>
 	where F: Fn(&Card, &CStr, usize),
-		  F: Send + 'static
+		  F: Send + 'static,
+		  G: Fn(&CStr, bool),
+		  G: Send + 'static,
 {
 	thread::spawn(move || {
 		let ctx = Context::establish(Scope::User).expect("Failed to establish context");
@@ -26,14 +28,21 @@ pub fn handle_cards<F>(handler: F) -> JoinHandle<()>
 			fn is_invalid(rs: &ReaderState) -> bool {
 				rs.event_state().intersects(State::UNKNOWN | State::IGNORE)
 			}
-			reader_states.retain(|rs| !is_invalid(rs));
+			reader_states.retain(|rs| {
+				let shouldKeep = !is_invalid(rs);
+				if !shouldKeep {
+					// Notify about removal
+					reader_handler(rs.name(), false);
+				}
+				shouldKeep
+			});
 
 			// Add new readers
 			let names = ctx.list_readers(&mut readers_buf).expect("Failed to list readers");
 			for name in names {
 				// Ignore the pseudo reader created by Windows Hello
 				if !reader_states.iter().any(|rs| rs.name() == name) && !name.to_str().unwrap().contains("Windows Hello") {
-					println!("Adding {:?}", name);
+					reader_handler(name, true);
 					reader_states.push(ReaderState::new(name, State::UNAWARE));
 				}
 			}
@@ -55,7 +64,7 @@ pub fn handle_cards<F>(handler: F) -> JoinHandle<()>
 						// Card is tapped
 						// Connect to the card.
 						match ctx.connect(rs.name(), ShareMode::Shared, Protocols::ANY) {
-							Ok(card) => handler(&card, rs.name(), reader_index),
+							Ok(card) => card_handler(&card, rs.name(), reader_index),
 							Err(Error::NoSmartcard) => {
 								eprintln!("A smartcard is not present in the reader");
 							}
