@@ -50,6 +50,14 @@ struct UserGet;
 	query_path = "api.graphql",
 	response_derives = "Debug",
 )]
+struct AttendeeGet;
+
+#[derive(GraphQLQuery)]
+#[graphql(
+	schema_path = "schema.graphql",
+	query_path = "api.graphql",
+	response_derives = "Debug",
+)]
 struct TagsGet;
 
 #[derive(GraphQLQuery)]
@@ -254,6 +262,33 @@ impl CheckinAPI {
 				.tags.into_iter()
 				.map(|tag| tag.name)
 				.collect()
+		)
+	}
+
+	/// Get authorized pickup persons from attendee data (Catalyst specific for now)
+	///
+	/// User must already have checked in for this data to exist
+	pub fn get_pickup_persons(&self, uuid: &str) -> Result<Vec<String>, Error> {
+		let body = AttendeeGet::build_query(attendee_get::Variables {
+			id: uuid.to_string()
+		});
+
+		let response: Response<attendee_get::ResponseData> = self.client.post(self.base_url.join("/graphql").unwrap())
+			.header(reqwest::header::COOKIE, self.auth_cookie.as_str())
+			.json(&body)
+			.send()?
+			.json()?;
+
+		if let Some(errors) = response.errors {
+			return Err(Error::GraphQL(errors));
+		}
+		if response.data.is_none() {
+			return Err("Check in API returned no data".into());
+		}
+		Ok(
+			response.data.unwrap()
+				.attendee.unwrap()
+				.authorized_pickup_persons.unwrap()
 		)
 	}
 }
