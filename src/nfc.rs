@@ -29,12 +29,12 @@ pub fn handle_cards<F, G>(card_handler: F, reader_handler: G) -> JoinHandle<()>
 				rs.event_state().intersects(State::UNKNOWN | State::IGNORE)
 			}
 			reader_states.retain(|rs| {
-				let shouldKeep = !is_invalid(rs);
-				if !shouldKeep {
+				let should_keep = !is_invalid(rs);
+				if !should_keep {
 					// Notify about removal
 					reader_handler(rs.name(), false);
 				}
-				shouldKeep
+				should_keep
 			});
 
 			// Add new readers

@@ -63,7 +63,7 @@ pub type CheckInReturn = (bool, check_in_tag::UserData, check_in_tag::TagData);
 
 pub struct CheckinAPI {
 	base_url: Url,
-	client: reqwest::Client,
+	client: reqwest::blocking::Client,
 	auth_cookie: String,
 }
 
@@ -86,7 +86,7 @@ impl CheckinAPI {
 	///
 	/// Note: this will block for a few seconds because the server has a high PBKDF2 iteration count by default
 	pub fn login(username: &str, password: &str) -> Result<Self, Error> {
-		let client = reqwest::Client::new();
+		let client = reqwest::blocking::Client::new();
 		let base_url = Url::parse(CheckinAPI::base_url()).expect("Invalid base URL configured");
 
 		let params = [("username", username), ("password", password)];
@@ -127,7 +127,7 @@ impl CheckinAPI {
 	///
 	/// Can be used to instantly resume an API instance after having obtained a token previously
 	pub fn from_token(mut auth_token: String) -> Self {
-		let client = reqwest::Client::new();
+		let client = reqwest::blocking::Client::new();
 		let base_url = Url::parse(CheckinAPI::base_url()).expect("Invalid base URL configured");
 		// Create a HTTP cookie header out of this token
 		auth_token.insert_str(0, "auth=");
