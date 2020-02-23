@@ -14,7 +14,7 @@ pub fn handle_cards<F, G>(card_handler: F, reader_handler: G) -> JoinHandle<()>
 		  G: Send + 'static,
 {
 	thread::spawn(move || {
-		let ctx = Context::establish(Scope::User).expect("Failed to establish context");
+		let mut ctx = Context::establish(Scope::User).expect("Failed to establish context");
 
 		let mut readers_buf = [0; 2048];
 		let mut reader_states = vec![
@@ -38,7 +38,17 @@ pub fn handle_cards<F, G>(card_handler: F, reader_handler: G) -> JoinHandle<()>
 			});
 
 			// Add new readers
-			let names = ctx.list_readers(&mut readers_buf).expect("Failed to list readers");
+			let names = match ctx.list_readers(&mut readers_buf) {
+				Ok(names) => names,
+				Err(pcsc::Error::ServiceStopped) => {
+					// Windows will kill the SmartCard service when the last reader is disconnected
+					// Restart it and wait (sleep) for a new reader connection if that occurs
+					ctx = Context::establish(Scope::User).expect("Failed to establish context");
+					continue;
+				}
+				Err(err) => { panic!("Failed to list readers: {:?}", err) }
+			};
+
 			for name in names {
 				// Ignore the pseudo reader created by Windows Hello
 				if !reader_states.iter().any(|rs| rs.name() == name) && !name.to_str().unwrap().contains("Windows Hello") {
