@@ -40,7 +40,7 @@ pub fn handle_cards<F, G>(card_handler: F, reader_handler: G) -> JoinHandle<()>
 			// Add new readers
 			let names = match ctx.list_readers(&mut readers_buf) {
 				Ok(names) => names,
-				Err(pcsc::Error::ServiceStopped) => {
+				Err(pcsc::Error::ServiceStopped) | Err(pcsc::Error::NoService) => {
 					// Windows will kill the SmartCard service when the last reader is disconnected
 					// Restart it and wait (sleep) for a new reader connection if that occurs
 					ctx = Context::establish(Scope::User).expect("Failed to establish context");
@@ -65,7 +65,7 @@ pub fn handle_cards<F, G>(card_handler: F, reader_handler: G) -> JoinHandle<()>
 			// Wait until the state changes
 			match ctx.get_status_change(None, &mut reader_states) {
 				Ok(()) => {},
-				Err(pcsc::Error::ServiceStopped) => {
+				Err(pcsc::Error::ServiceStopped) | Err(pcsc::Error::NoService) => {
 					// Windows will kill the SmartCard service when the last reader is disconnected
 					// Restart it and wait (sleep) for a new reader connection if that occurs
 					ctx = Context::establish(Scope::User).expect("Failed to establish context");
