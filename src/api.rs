@@ -68,26 +68,13 @@ pub struct CheckinAPI {
 }
 
 /// An implementation of the [HackGT Check-In](https://github.com/HackGT/checkin2) API
-///
-/// Will use the dev instance at [`https://checkin.dev.hack.gt`](https://checkin.dev.hack.gt) if compiled *without* the `--release` flag
-///
-/// Will use the production instance at [`https://checkin.hack.gt`](https://checkin.hack.gt) if compiled *with* the `--release` flag
 impl CheckinAPI {
-	#[cfg(debug_assertions)]
-	fn base_url() -> &'static str {
-		"https://checkin.dev.hack.gt"
-	}
-	#[cfg(not(debug_assertions))]
-	fn base_url() -> &'static str {
-		"https://checkin.hack.gt"
-	}
-
 	/// Log into the API using a username / password combination provided to you
 	///
 	/// Note: this will block for a few seconds because the server has a high PBKDF2 iteration count by default
-	pub fn login(username: &str, password: &str) -> Result<Self, Error> {
+	pub fn login(username: &str, password: &str, url: &str) -> Result<Self, Error> {
 		let client = reqwest::blocking::Client::new();
-		let base_url = Url::parse(CheckinAPI::base_url()).expect("Invalid base URL configured");
+		let base_url = Url::parse(url).expect("Invalid base URL configured");
 
 		let params = [("username", username), ("password", password)];
 		let response = client.post(base_url.join("/api/user/login").unwrap())
@@ -126,9 +113,9 @@ impl CheckinAPI {
 	/// Create an API instance directly from an auth token
 	///
 	/// Can be used to instantly resume an API instance after having obtained a token previously
-	pub fn from_token(mut auth_token: String) -> Self {
+	pub fn from_token(mut auth_token: String, url: &str) -> Self {
 		let client = reqwest::blocking::Client::new();
-		let base_url = Url::parse(CheckinAPI::base_url()).expect("Invalid base URL configured");
+		let base_url = Url::parse(url).expect("Invalid base URL configured");
 		// Create a HTTP cookie header out of this token
 		auth_token.insert_str(0, "auth=");
 		Self { base_url, client, auth_cookie: auth_token }
